@@ -102,5 +102,20 @@ function switchTab(tabName) {
     if (targetTab) targetTab.className = "flex-1 py-4 text-center border-b-2 font-medium tracking-wide uppercase text-xs border-emerald-500 text-emerald-400 bg-slate-900/40";
 }
 
-// Kick off initialization
-loadSurahData();
+// Kick off initialization only after the DOM is completely ready
+document.addEventListener("DOMContentLoaded", () => {
+    // Re-grab the input element if it loaded late
+    const chapterInput = document.getElementById("chapterInput");
+    if (chapterInput && !chapterInput.hasAttribute('data-hooked')) {
+        chapterInput.addEventListener("change", (e) => {
+            let val = parseInt(e.target.value);
+            if (val >= 1 && val <= 114) {
+                currentChapter = val;
+                localStorage.setItem("furqan_last_chapter", currentChapter);
+                loadSurahData();
+            }
+        });
+        chapterInput.setAttribute('data-hooked', 'true');
+    }
+    loadSurahData();
+});
