@@ -154,13 +154,14 @@
 
       <div>
         <label for="reciterSelect" style="font-size:0.82rem; color:var(--ink-soft);">Reciter (audio)</label>
-        <select id="reciterSelect">
-          <option value="ar.husary">Mahmoud Al-Husary</option>
-          <option value="ar.alafasy">Mishary Alafasy</option>
-          <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
-          <option value="ar.minshawi">Mohamed Minshawi</option>
-        </select>
+        <select id="reciterSelect"><option>Loading…</option></select>
       </div>
+    </div>
+
+    <div class="card" id="audioBar" style="padding: 16px 24px; margin-bottom: 20px; display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+      <button id="playSurahBtn" class="btn btn-primary" style="padding:9px 18px; font-size:0.88rem;">▶ Play full surah</button>
+      <span id="nowPlayingLabel" class="muted" style="font-size:0.9rem;"></span>
+      <audio id="ayahAudio" controls style="flex:1; min-width:220px; height:36px;"></audio>
     </div>
 
     <div class="card" style="padding: 8px 32px;">
