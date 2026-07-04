@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Read Quran — Furqan</title>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css" />
 <style>
   .reader-controls {
     display: grid;
@@ -147,7 +147,7 @@
 
       <div id="transliterationWrap" style="display:flex; align-items:flex-end; padding-bottom:11px;">
         <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:var(--ink);">
-          <input type="checkbox" id="transliterationToggle">
+          <input type="checkbox" id="transliterationToggle" />
           Show English transliteration
         </label>
       </div>
@@ -177,8 +177,36 @@
   </div>
 </footer>
 
-<audio id="ayahAudio"></audio>
 <script src="js/main.js"></script>
 <script src="js/quran.js"></script>
+<script>
+  // Your custom script to populate reciter select
+  document.addEventListener('DOMContentLoaded', () => {
+    const reciterSelect = document.getElementById('reciterSelect');
+    const reciters = [
+      { id: 'reciter1', name: 'Reciter 1' },
+      { id: 'reciter2', name: 'Reciter 2' },
+      { id: 'reciter3', name: 'Reciter 3' },
+      { id: 'reciter4', name: 'Reciter 4' }
+    ];
+
+    // Clear existing options
+    reciterSelect.innerHTML = '';
+
+    // Add default option
+    const defaultOption = document.createElement('option');
+    defaultOption.textContent = 'Select a reciter';
+    defaultOption.value = '';
+    reciterSelect.appendChild(defaultOption);
+
+    // Populate reciter options
+    reciters.forEach(reciter => {
+      const option = document.createElement('option');
+      option.value = reciter.id;
+      option.textContent = reciter.name;
+      reciterSelect.appendChild(option);
+    });
+  });
+</script>
 </body>
 </html>
