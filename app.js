@@ -1,6 +1,6 @@
-llet currentChapter = 1;
+let currentChapter = 1;
 
-// Auto-recovery configuration via local browser memory ($0 cost)
+// Auto-recovery configuration via local browser memory
 const savedChapter = localStorage.getItem("furqan_last_chapter");
 if (savedChapter) {
     currentChapter = parseInt(savedChapter);
@@ -9,16 +9,6 @@ if (savedChapter) {
 }
 
 const chapterInput = document.getElementById("chapterInput");
-if (chapterInput) {
-    chapterInput.addEventListener("change", (e) => {
-        let val = parseInt(e.target.value);
-        if (val >= 1 && val <= 114) {
-            currentChapter = val;
-            localStorage.setItem("furqan_last_chapter", currentChapter);
-            loadSurahData();
-        }
-    });
-}
 
 // High-speed key interception hooks
 window.addEventListener("keydown", (e) => {
@@ -50,33 +40,34 @@ async function loadSurahData() {
     try {
         // Fetch both data streams simultaneously in parallel to boost performance speed
         const [arRes, enRes] = await Promise.all([
-            fetch(`https://api.alquran.cloud/v1/surah/${currentChapter}/quran-uthmani`),
-            fetch(`https://api.alquran.cloud/v1/surah/${currentChapter}/en.sahih`)
+            fetch(`https://api.quran.com/api/v4/quran/verses/uthmani?chapter_number=${currentChapter}`),
+            fetch(`https://api.quran.com/api/v4/quran/translations/131?chapter_number=${currentChapter}`)
         ]);
 
-        // Guard clause: Ensure both servers responded successfully
         if (!arRes.ok || !enRes.ok) throw new Error("API server responded with an error status.");
 
-        const arData = await arRes.json();
-        const enData = await enRes.json();
+        const arData = await arRes.ok ? await arRes.json() : null;
+        const enData = await enRes.ok ? await enRes.json() : null;
 
-        // Print Arabic script column (Parsing structure from the live API payload)
-        arabicContainer.innerHTML = arData.data.ayahs.map(ayah => `
-            <div class="pb-6 border-b border-slate-900 last:border-none">
-                <p class="text-right text-3xl leading-loose text-slate-200 font-serif" dir="rtl">
-                    ${ayah.text}
-                    <span class="text-xs bg-slate-800 text-emerald-400 font-mono px-2.5 py-1 rounded-full mr-3 select-none">${ayah.numberInSurah}</span>
-                </p>
-            </div>
-        `).join('');
+        if (arData && arData.verses) {
+            arabicContainer.innerHTML = arData.verses.map((ayah, idx) => `
+                <div class="pb-6 border-b border-slate-900 last:border-none">
+                    <p class="text-right text-3xl leading-loose text-slate-200 font-serif" dir="rtl">
+                        ${ayah.text_uthmani}
+                        <span class="text-xs bg-slate-800 text-emerald-400 font-mono px-2.5 py-1 rounded-full mr-3 select-none">${idx + 1}</span>
+                    </p>
+                </div>
+            `).join('');
+        }
 
-        // Print English translation column side-by-side
-        translationContainer.innerHTML = enData.data.ayahs.map(trans => `
-            <div class="min-h-[76px] flex flex-col justify-center border-b border-slate-800/40 pb-6 last:border-none">
-                <span class="text-xs font-mono text-emerald-500 mb-1">VERSE ${trans.numberInSurah}</span>
-                <p class="text-slate-300 text-base leading-relaxed italic font-light">"${trans.text}"</p>
-            </div>
-        `).join('');
+        if (enData && enData.translations) {
+            translationContainer.innerHTML = enData.translations.map((trans, idx) => `
+                <div class="min-h-[76px] flex flex-col justify-center border-b border-slate-800/40 pb-6 last:border-none">
+                    <span class="text-xs font-mono text-emerald-500 mb-1">VERSE ${idx + 1}</span>
+                    <div class="text-slate-300 text-base leading-relaxed italic font-light">${trans.text}</div>
+                </div>
+            `).join('');
+        }
 
     } catch (err) {
         console.error("Data pipeline broken:", err);
@@ -104,9 +95,8 @@ function switchTab(tabName) {
 
 // Kick off initialization only after the DOM is completely ready
 document.addEventListener("DOMContentLoaded", () => {
-    // Re-grab the input element if it loaded late
     const chapterInput = document.getElementById("chapterInput");
-    if (chapterInput && !chapterInput.hasAttribute('data-hooked')) {
+    if (chapterInput) {
         chapterInput.addEventListener("change", (e) => {
             let val = parseInt(e.target.value);
             if (val >= 1 && val <= 114) {
@@ -115,7 +105,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 loadSurahData();
             }
         });
-        chapterInput.setAttribute('data-hooked', 'true');
     }
     loadSurahData();
 });
