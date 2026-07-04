@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Furqan - Workspace</title>
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Amiri&family=Inter:wght@300;400;500;600&display=swap');
+        .font-serif { font-family: 'Amiri', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans overflow-hidden h-screen w-screen flex flex-col">
+
+    <!-- Top Header -->
+    <header class="p-4 bg-slate-950 flex justify-between items-center border-b border-slate-800">
+        <h1 class="text-xl font-bold tracking-wider text-emerald-400">FURQAN</h1>
+        <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-400">Surah Number:</span>
+            <input 
+                type="number" id="chapterInput" min="1" max="114" value="1"
+                class="bg-slate-800 text-white font-mono w-16 px-2 py-1 rounded border border-slate-700 text-center text-sm outline-none"
+            />
+        </div>
+    </header>
+
+    <!-- Main Dynamic Workspace Interface -->
+    <div class="flex flex-1 overflow-hidden">
+        
+        <!-- LEFT PANEL: Quran Arabic Scroll -->
+        <div class="w-1/2 h-full border-r border-slate-800 flex flex-col bg-slate-950">
+            <div id="arabicContainer" class="flex-1 overflow-y-auto p-6 space-y-8">
+                <!-- Loaded Text Appears Here -->
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL: Multitasking Tab Deck -->
+        <div class="w-1/2 h-full flex flex-col bg-slate-900">
+            <nav class="flex bg-slate-950 border-b border-slate-800 text-sm select-none">
+                <button onclick="switchTab('translation')" id="tab-translation" class="flex-1 py-4 text-center border-b-2 font-medium tracking-wide uppercase text-xs border-emerald-500 text-emerald-400 bg-slate-900/40">Translation</button>
+                <button onclick="switchTab('hifz')" id="tab-hifz" class="flex-1 py-4 text-center border-b-2 font-medium tracking-wide uppercase text-xs border-transparent text-slate-400 hover:text-slate-200">Hifz Teacher</button>
+                <button onclick="switchTab('roots')" id="tab-roots" class="flex-1 py-4 text-center border-b-2 font-medium tracking-wide uppercase text-xs border-transparent text-slate-400 hover:text-slate-200">Arabic Roots</button>
+            </nav>
+
+            <div class="flex-1 overflow-y-auto p-6">
+                <!-- Translation Content Panel -->
+                <div id="content-translation" class="space-y-8">
+                    <!-- Text Appears Here -->
+                </div>
+
+                <!-- Hifz Tool Content Panel -->
+                <div id="content-hifz" class="hidden bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+                    <h3 class="text-base font-semibold text-emerald-400">Interactive Memorization Engine</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed">Activate browser speech parameters to monitor your recitation loops and catch verbal lags instantly.</p>
+                    <button class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm px-4 py-2 rounded-xl shadow transition-all active:scale-95">Initialize Voice Tracking</button>
+                </div>
+
+                <!-- Language Content Panel -->
+                <div id="content-roots" class="hidden bg-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl space-y-4">
+                    <h3 class="text-base font-semibold text-emerald-400">Quranic Language Curriculum</h3>
+                    <p class="text-xs text-slate-400">Study fundamental roots extracted instantly from your active reading column.</p>
+                    <div class="p-4 bg-slate-900 rounded-xl border border-slate-800 text-center">
+                        <span class="text-2xl font-bold tracking-widest text-emerald-300 block mb-1">ك - ت - ب</span>
+                        <span class="text-xs text-slate-400">Root: K-T-B (To Write / Decree)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
