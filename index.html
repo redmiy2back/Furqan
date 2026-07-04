@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Furqan — The Quran, made easy to read, hear, and learn</title>
+<meta name="description" content="Furqan is a free Quran companion: read in Arabic or your language, get prayer times, memorize with a guided teacher, search duas, and ask questions — no ads, ever.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand">
+      <span class="kufic">الفرقان</span>
+      Furqan
+    </a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <a href="index.html" class="active">Home</a>
+      <a href="quran.html">Read Quran</a>
+      <a href="prayer.html">Prayer Times</a>
+      <a href="hifz.html">Hifz <span class="badge-soon">Soon</span></a>
+      <a href="duas.html">Duas <span class="badge-soon">Soon</span></a>
+      <a href="chatbot.html">Ask Furqan <span class="badge-soon">Soon</span></a>
+    </nav>
+  </div>
+</header>
+
+<!-- ================= HERO ================= -->
+<section class="section" style="padding-top: 56px;">
+  <div class="container" style="display:grid; grid-template-columns: 1.1fr 0.9fr; gap: 48px; align-items:center;">
+    <div>
+      <p class="eyebrow">Free. No ads. No accounts required to read.</p>
+      <h1 style="font-size: clamp(2.2rem, 4vw, 3.2rem); max-width: 14ch;">A calm place to read, hear, and learn the Qur'an.</h1>
+      <p class="muted" style="font-size:1.1rem; max-width:48ch;">Furqan brings the Arabic text, translations in your language, prayer times for where you stand, and a patient AI teacher for memorization — all in one quiet, uncluttered space.</p>
+      <div style="display:flex; gap:14px; margin-top:28px; flex-wrap:wrap;">
+        <a href="quran.html" class="btn btn-primary">Start reading →</a>
+        <a href="prayer.html" class="btn btn-ghost">Find prayer times</a>
+      </div>
+    </div>
+    <div style="display:flex; justify-content:center;">
+      <!-- Signature element: 8-pointed khatam star, built from the site's five sections meeting at one center -->
+      <svg id="khatam" viewBox="0 0 400 400" width="340" height="340" role="img" aria-label="Eight-pointed geometric star, the Furqan mark">
+        <defs>
+          <linearGradient id="starGrad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#0F5D4E"/>
+            <stop offset="100%" stop-color="#0A4238"/>
+          </linearGradient>
+        </defs>
+        <g transform="translate(200,200)">
+          <polygon id="starA" points="0,-150 35,-35 150,0 35,35 0,150 -35,35 -150,0 -35,-35"
+                   fill="url(#starGrad)" opacity="0.95"/>
+          <polygon id="starB" points="0,-150 35,-35 150,0 35,35 0,150 -35,35 -150,0 -35,-35"
+                   fill="none" stroke="#C9A24B" stroke-width="2.5" transform="rotate(22.5)"/>
+          <circle r="46" fill="#FAF6ED" stroke="#C9A24B" stroke-width="2"/>
+          <text text-anchor="middle" dominant-baseline="middle" class="arabic" font-size="34" fill="#0A4238">قرآن</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FEATURE CARDS ================= -->
+<section class="section-tight">
+  <div class="container">
+    <p class="eyebrow text-center">Five ways in</p>
+    <h2 class="text-center" style="max-width:30ch; margin:0 auto 40px;">Everything opens from one door.</h2>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 22px;">
+
+      <a href="quran.html" class="card" style="padding:28px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:1.8rem;">📖</div>
+        <h3 style="font-size:1.15rem;">Read the Qur'an</h3>
+        <p class="muted" style="font-size:0.95rem; margin:0;">Arabic, translation in any language, and four ways to lay out the page — pick what matches how you like to read.</p>
+      </a>
+
+      <a href="prayer.html" class="card" style="padding:28px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:1.8rem;">🕌</div>
+        <h3 style="font-size:1.15rem;">Prayer times</h3>
+        <p class="muted" style="font-size:0.95rem; margin:0;">Share your location once, and get accurate Fajr-to-Isha timings for exactly where you are.</p>
+      </a>
+
+      <a href="hifz.html" class="card" style="padding:28px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:1.8rem;">🎧</div>
+        <h3 style="font-size:1.15rem;">Hifz, with a teacher</h3>
+        <p class="muted" style="font-size:0.95rem; margin:0;">Listen to a reciter, repeat the verse, and get corrected line by line — like sitting with a teacher, not a quiz app.<span class="badge-soon">Building now</span></p>
+      </a>
+
+      <a href="duas.html" class="card" style="padding:28px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:1.8rem;">🤲</div>
+        <h3 style="font-size:1.15rem;">Duas for every moment</h3>
+        <p class="muted" style="font-size:0.95rem; margin:0;">Search by feeling or situation — anxiety, travel, gratitude — and find the dua that fits, sourced from Qur'an and hadith.<span class="badge-soon">Building now</span></p>
+      </a>
+
+      <a href="chatbot.html" class="card" style="padding:28px; display:flex; flex-direction:column; gap:10px;">
+        <div style="font-size:1.8rem;">💬</div>
+        <h3 style="font-size:1.15rem;">Ask Furqan</h3>
+        <p class="muted" style="font-size:0.95rem; margin:0;">A respectful, source-backed companion for your questions — every answer points back to where it came from.<span class="badge-soon">Building now</span></p>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Furqan — free for everyone, always. No ads, no paywalls.</span>
+    <span>Built by a student, for the public.</span>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
