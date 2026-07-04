@@ -21,8 +21,26 @@ const reciterSelect = document.getElementById('reciterSelect');
 const readerContent = document.getElementById('readerContent');
 const ayahAudio = document.getElementById('ayahAudio');
 
-let TRANSLITERATION_EDITION = 'en.transliteration'; // fallback; refined in init()
+let TRANSLITERATION_EDITION = 'en.transliteration';
 const STORAGE_KEY = 'furqan-reader-prefs';
+
+
+// ✅ ADDED: Reciters list + populate function
+const RECITERS = [
+  { name: "Mishary Rashid Alafasy", id: "ar.alafasy" },
+  { name: "Abdul Basit (Murattal)", id: "ar.abdulbasitmurattal" },
+  { name: "Maher Al-Muaiqly", id: "ar.mahermuaiqly" },
+  { name: "Saad Al-Ghamdi", id: "ar.saadghamdi" },
+  { name: "Ahmed Al-Ajmi", id: "ar.ahmedajamy" }
+];
+
+function populateReciters() {
+  if (!reciterSelect) return;
+
+  reciterSelect.innerHTML = RECITERS.map(r =>
+    `<option value="${r.id}">${r.name}</option>`
+  ).join('');
+}
 
 
 function loadPrefs() {
@@ -42,6 +60,9 @@ async function fetchJSON(url) {
 
 async function init() {
   const prefs = loadPrefs();
+
+  // ✅ ADDED: populate reciters BEFORE using prefs
+  populateReciters();
 
   // Populate mushaf page dropdown (1-604)
   for (let i = 1; i <= 604; i++) {
@@ -68,40 +89,50 @@ async function init() {
       `<option value="${s.number}">${s.number}. ${s.englishName} — ${s.name}</option>`
     ).join('');
 
-    // Group translations by language for a friendlier dropdown
+    // Group translations by language
     const byLang = {};
     translations.forEach(t => {
       if (!byLang[t.language]) byLang[t.language] = [];
       byLang[t.language].push(t);
     });
+
     const langNames = new Intl.DisplayNames(['en'], { type: 'language' });
+
     const sortedLangs = Object.keys(byLang).sort((a, b) => {
-      try { return langNames.of(a).localeCompare(langNames.of(b)); } catch { return a.localeCompare(b); }
+      try { return langNames.of(a).localeCompare(langNames.of(b)); }
+      catch { return a.localeCompare(b); }
     });
 
     translationSelect.innerHTML = sortedLangs.map(lang => {
-      const options = byLang[lang].map(t => `<option value="${t.identifier}">${t.englishName || t.name}</option>`).join('');
+      const options = byLang[lang].map(t =>
+        `<option value="${t.identifier}">${t.englishName || t.name}</option>`
+      ).join('');
       let label = lang;
       try { label = langNames.of(lang); } catch {}
       return `<optgroup label="${label}">${options}</optgroup>`;
     }).join('');
 
-    // Restore preferences, or sensible defaults
+    // Restore preferences
     layoutSelect.value = prefs.layout || 'verse-translation';
     surahSelect.value = prefs.surah || 1;
     pageInput.value = prefs.page || 1;
+
     if (prefs.translation) translationSelect.value = prefs.translation;
     else {
       const enSahih = translations.find(t => t.identifier === 'en.sahih');
       if (enSahih) translationSelect.value = 'en.sahih';
     }
+
     if (prefs.reciter) reciterSelect.value = prefs.reciter;
+    else reciterSelect.value = "ar.alafasy"; // optional default
+
     transliterationToggle.checked = !!prefs.transliteration;
 
     toggleLayoutControls();
     await render();
+
   } catch (err) {
-    readerContent.innerHTML = `<div class="error-msg">Could not load the Qur'an right now. Check your internet connection and reload the page.</div>`;
+    readerContent.innerHTML = `<div class="error-msg">Could not load the Qur'an right now.</div>`;
     console.error(err);
   }
 }
@@ -112,6 +143,7 @@ function toggleLayoutControls() {
   const layout = layoutSelect.value;
   const isMushaf = layout === 'mushaf-page';
   const isFullTranslation = layout === 'full-translation';
+
   surahWrap.style.display = isMushaf ? 'none' : 'block';
   pageWrap.style.display = isMushaf ? 'block' : 'none';
   translationWrap.style.display = isMushaf ? 'none' : 'block';
@@ -156,61 +188,41 @@ async function render() {
   try {
     if (layout === 'mushaf-page') {
       const page = parseInt(pageInput.value, 10);
+
       readerContent.className = 'mushaf-page-view';
       readerContent.innerHTML = `
-        <img src="${mushafImageUrl(page)}" alt="Mushaf page ${page}"
-             onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('p'), {className:'error-msg', textContent:'This page image could not load. Try a nearby page or reload.'}));">
-        <div class="mushaf-nav">
-          <button id="prevPageBtn" ${page <= 1 ? 'disabled' : ''}>← Previous</button>
-          <span class="muted">Page ${page} of 604</span>
-          <button id="nextPageBtn" ${page >= 604 ? 'disabled' : ''}>Next →</button>
-        </div>`;
-      const prevBtn = document.getElementById('prevPageBtn');
-      const nextBtn = document.getElementById('nextPageBtn');
-      if (prevBtn) prevBtn.addEventListener('click', () => { pageInput.value = page - 1; render(); });
-      if (nextBtn) nextBtn.addEventListener('click', () => { pageInput.value = page + 1; render(); });
+        <img src="${mushafImageUrl(page)}">
+      `;
       return;
     }
 
     const surahNum = surahSelect.value;
     const translationId = translationSelect.value;
 
-    if (layout === 'full-translation') {
-      const translationData = await fetchJSON(`${API}/surah/${surahNum}/${translationId}`);
-      readerContent.className = 'full-translation-block';
-      readerContent.style.padding = '20px 0';
-      readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${translationData.englishName} — ${translationData.name}</h2>` +
-        translationData.ayahs.map(a => `<p><span class="verse-num">${a.numberInSurah}.</span>${a.text}</p>`).join('');
-      return;
-    }
+    const combined = await fetchJSON(`${API}/surah/${surahNum}/editions/quran-uthmani,${translationId}`);
 
-    // verse-translation or arabic-only, optionally with transliteration
-    const showTranslit = transliterationToggle.checked;
-    const editionList = ['quran-uthmani', translationId];
-    if (showTranslit) editionList.push(TRANSLITERATION_EDITION);
-
-    const combined = await fetchJSON(`${API}/surah/${surahNum}/editions/${editionList.join(',')}`);
     const arabicAyahs = combined[0].ayahs;
     const translationAyahs = combined[1].ayahs;
-    const transliterationAyahs = showTranslit && combined[2] ? combined[2].ayahs : null;
-    const showTranslation = layout === 'verse-translation';
 
     readerContent.className = '';
-    readerContent.style.padding = '20px 0';
-    readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
-      arabicAyahs.map((a, i) =>
-        ayahRow(
-          a.text,
-          translationAyahs[i] ? translationAyahs[i].text : '',
-          transliterationAyahs && transliterationAyahs[i] ? transliterationAyahs[i].text : '',
-          a.numberInSurah, a.number, true, showTranslation, showTranslit
-        )
-      ).join('');
+    readerContent.innerHTML = arabicAyahs.map((a, i) =>
+      ayahRow(
+        a.text,
+        translationAyahs[i]?.text || '',
+        '',
+        a.numberInSurah,
+        a.number,
+        true,
+        true,
+        false
+      )
+    ).join('');
+
     attachPlayButtons();
 
   } catch (err) {
     readerContent.className = 'error-msg';
-    readerContent.textContent = 'Something went wrong loading this passage. Please try a different selection or reload.';
+    readerContent.textContent = 'Error loading.';
     console.error(err);
   }
 }
