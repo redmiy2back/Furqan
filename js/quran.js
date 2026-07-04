@@ -240,4 +240,28 @@ translationSelect.addEventListener('change', render);
 transliterationToggle.addEventListener('change', render);
 reciterSelect.addEventListener('change', () => savePrefs(currentPrefs()));
 
+// ✅ FULL SURAH PLAY (FIXED)
+document.addEventListener("DOMContentLoaded", () => {
+  const playSurahBtn = document.getElementById('playSurahBtn');
+  const nowPlayingLabel = document.getElementById('nowPlayingLabel');
+
+  if (!playSurahBtn) return; // safety
+
+  playSurahBtn.addEventListener('click', () => {
+    const reciter = reciterSelect.value;
+    const surah = surahSelect.value;
+
+    if (!reciter || !surah) return;
+
+    const surahPadded = String(surah).padStart(3, '0');
+
+    ayahAudio.src = `https://cdn.islamic.network/quran/audio-surah/128/${reciter}/${surahPadded}.mp3`;
+
+    ayahAudio.play().catch(() => {});
+
+    const selectedSurahName = surahSelect.options[surahSelect.selectedIndex].text;
+    nowPlayingLabel.textContent = `Playing: ${selectedSurahName}`;
+  });
+});
+
 init();
