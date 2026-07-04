@@ -205,9 +205,22 @@ async function render() {
     const translationAyahs = combined[1].ayahs;
 
     readerContent.className = '';
-    readerContent.innerHTML = arabicAyahs.map((a, i) =>
-      ayahRow(
-        a.text,
+    let bismillahBlock = '';
+
+if (surahNum != 1 && surahNum != 9) {
+  bismillahBlock = `
+    <div class="ayah-block">
+      <div class="ayah-arabic" style="text-align:center;">
+        بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+      </div>
+    </div>
+  `;
+}
+  readerContent.innerHTML = bismillahBlock + arabicAyahs.map((a, i) =>
+  ayahRow(
+    (i === 0 && surahNum != 1 && surahNum != 9)
+      ? a.text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim()
+      : a.text,
         translationAyahs[i]?.text || '',
         '',
         a.numberInSurah,
@@ -240,12 +253,12 @@ translationSelect.addEventListener('change', render);
 transliterationToggle.addEventListener('change', render);
 reciterSelect.addEventListener('change', () => savePrefs(currentPrefs()));
 
-// ✅ FULL SURAH PLAY (FIXED)
+// ✅ FULL SURAH PLAY (WORKING FIX)
 document.addEventListener("DOMContentLoaded", () => {
   const playSurahBtn = document.getElementById('playSurahBtn');
   const nowPlayingLabel = document.getElementById('nowPlayingLabel');
 
-  if (!playSurahBtn) return; // safety
+  if (!playSurahBtn) return;
 
   playSurahBtn.addEventListener('click', () => {
     const reciter = reciterSelect.value;
@@ -253,14 +266,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!reciter || !surah) return;
 
-    const surahPadded = String(surah).padStart(3, '0');
+    fetch(`https://api.quran.com/api/v4/chapter_recitations/${reciter}/${surah}`)
+      .then(res => res.json())
+      .then(data => {
+        let url = data.audio_file.audio_url;
 
-    ayahAudio.src = `https://cdn.islamic.network/quran/audio-surah/128/${reciter}/${surahPadded}.mp3`;
+        if (!url.startsWith("http")) {
+          url = "https://verses.quran.com/" + url;
+        }
 
-    ayahAudio.play().catch(() => {});
+        ayahAudio.src = url;
+        ayahAudio.play().catch(() => {});
 
-    const selectedSurahName = surahSelect.options[surahSelect.selectedIndex].text;
-    nowPlayingLabel.textContent = `Playing: ${selectedSurahName}`;
+        const selectedSurahName = surahSelect.options[surahSelect.selectedIndex].text;
+        nowPlayingLabel.textContent = `Playing: ${selectedSurahName}`;
+      })
+      .catch(err => console.error(err));
   });
 });
 
