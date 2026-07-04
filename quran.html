@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Read Quran — Furqan</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .reader-controls {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+  select {
+    width: 100%;
+    padding: 11px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: #fff;
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    color: var(--ink);
+  }
+  .ayah-block {
+    padding: 22px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .ayah-block:last-child { border-bottom: none; }
+  .ayah-arabic {
+    font-family: var(--font-arabic);
+    font-size: 1.9rem;
+    line-height: 2.4;
+    direction: rtl;
+    color: var(--ink);
+    margin-bottom: 6px;
+  }
+  .ayah-number-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--emerald-soft);
+    color: var(--emerald-deep);
+    font-size: 0.75rem;
+    font-family: var(--font-body);
+    margin-inline-start: 8px;
+  }
+  .ayah-translation { color: var(--ink-soft); font-size: 1rem; margin: 4px 0 8px; }
+  .ayah-tools { display:flex; gap: 10px; }
+  .play-btn {
+    background: none; border: 1px solid var(--line); border-radius: 999px;
+    padding: 5px 14px; font-size: 0.82rem; cursor: pointer; color: var(--emerald-deep);
+  }
+  .play-btn:hover { border-color: var(--emerald); }
+  .mushaf-page-view {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 0 32px;
+  }
+  .mushaf-page-view img {
+    max-width: 100%;
+    width: 480px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    box-shadow: var(--shadow-soft);
+  }
+  .mushaf-nav {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .mushaf-nav button {
+    background: var(--emerald-soft);
+    border: none;
+    color: var(--emerald-deep);
+    padding: 8px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .mushaf-nav button:hover { background: var(--brass-soft); }
+  .mushaf-nav button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .transliteration-line {
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+    margin: 2px 0 6px;
+  }
+  .loading, .error-msg { text-align:center; padding: 60px 0; color: var(--ink-soft); }
+  .error-msg { color: var(--rubric); }
+  .full-translation-block p { margin: 0 0 14px; }
+  .full-translation-block .verse-num { color: var(--brass); font-weight: 700; margin-right: 6px; }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand"><span class="kufic">الفرقان</span>Furqan</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="quran.html" class="active">Read Quran</a>
+      <a href="prayer.html">Prayer Times</a>
+      <a href="hifz.html">Hifz <span class="badge-soon">Soon</span></a>
+      <a href="duas.html">Duas <span class="badge-soon">Soon</span></a>
+      <a href="chatbot.html">Ask Furqan <span class="badge-soon">Soon</span></a>
+    </nav>
+  </div>
+</header>
+
+<section class="section-tight">
+  <div class="container">
+    <p class="eyebrow">Read</p>
+    <h1 style="font-size:2rem;">Read the Qur'an</h1>
+    <p class="muted" style="max-width:60ch;">Choose a surah, a translation language, and a layout. Your choices are remembered on this device.</p>
+
+    <div class="reader-controls">
+      <div>
+        <label for="layoutSelect" style="font-size:0.82rem; color:var(--ink-soft);">Layout</label>
+        <select id="layoutSelect">
+          <option value="verse-translation">Verse + translation</option>
+          <option value="arabic-only">Arabic only</option>
+          <option value="full-translation">Full translation only</option>
+          <option value="mushaf-page">Mushaf page-by-page</option>
+        </select>
+      </div>
+
+      <div id="surahWrap">
+        <label for="surahSelect" style="font-size:0.82rem; color:var(--ink-soft);">Surah</label>
+        <select id="surahSelect"><option>Loading…</option></select>
+      </div>
+
+      <div id="pageWrap" style="display:none;">
+        <label for="pageInput" style="font-size:0.82rem; color:var(--ink-soft);">Mushaf page (1–604)</label>
+        <select id="pageInput"></select>
+      </div>
+
+      <div id="translationWrap">
+        <label for="translationSelect" style="font-size:0.82rem; color:var(--ink-soft);">Translation language</label>
+        <select id="translationSelect"><option>Loading…</option></select>
+      </div>
+
+      <div id="transliterationWrap" style="display:flex; align-items:flex-end; padding-bottom:11px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.9rem; color:var(--ink);">
+          <input type="checkbox" id="transliterationToggle">
+          Show English transliteration
+        </label>
+      </div>
+
+      <div>
+        <label for="reciterSelect" style="font-size:0.82rem; color:var(--ink-soft);">Reciter (audio)</label>
+        <select id="reciterSelect">
+          <option value="ar.husary">Mahmoud Al-Husary</option>
+          <option value="ar.alafasy">Mishary Alafasy</option>
+          <option value="ar.abdulbasitmurattal">Abdul Basit (Murattal)</option>
+          <option value="ar.minshawi">Mohamed Minshawi</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card" style="padding: 8px 32px;">
+      <div id="readerContent" class="loading">Loading the Qur'an…</div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Furqan — free for everyone, always.</span>
+    <span>Text & audio via AlQuran Cloud (open Qur'an API).</span>
+  </div>
+</footer>
+
+<audio id="ayahAudio"></audio>
+<script src="js/main.js"></script>
+<script src="js/quran.js"></script>
+</body>
+</html>
