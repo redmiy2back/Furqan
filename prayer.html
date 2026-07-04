@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prayer Times — Furqan</title>
+<link rel="stylesheet" href="css/style.css">
+<style>
+  .times-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 14px;
+    margin-top: 28px;
+  }
+  .time-card {
+    padding: 22px 16px;
+    text-align: center;
+  }
+  .time-card .name { font-size: 0.85rem; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.06em; }
+  .time-card .time { font-family: var(--font-display); font-size: 1.6rem; color: var(--emerald-deep); margin-top: 4px; }
+  .time-card.next { background: var(--emerald); }
+  .time-card.next .name, .time-card.next .time { color: var(--parchment); }
+  .location-line { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top: 20px; }
+  select { padding: 10px 14px; border-radius: 10px; border: 1px solid var(--line); background:#fff; font-family: var(--font-body); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="container">
+    <a href="index.html" class="brand"><span class="kufic">الفرقان</span>Furqan</a>
+    <button class="nav-toggle" id="navToggle" aria-label="Open menu">☰</button>
+    <nav class="main-nav" id="mainNav">
+      <a href="index.html">Home</a>
+      <a href="quran.html">Read Quran</a>
+      <a href="prayer.html" class="active">Prayer Times</a>
+      <a href="hifz.html">Hifz <span class="badge-soon">Soon</span></a>
+      <a href="duas.html">Duas <span class="badge-soon">Soon</span></a>
+      <a href="chatbot.html">Ask Furqan <span class="badge-soon">Soon</span></a>
+    </nav>
+  </div>
+</header>
+
+<section class="section-tight">
+  <div class="container">
+    <p class="eyebrow">Prayer</p>
+    <h1 style="font-size:2rem;">Prayer times for where you are</h1>
+    <p class="muted" style="max-width:60ch;">Furqan asks your browser for your location just once, then calculates today's times. Nothing is stored on a server.</p>
+
+    <div id="permissionCard" class="card" style="padding: 28px; margin-top: 24px;">
+      <p style="margin:0 0 14px;">Allow location access to see accurate times for your area.</p>
+      <button id="locateBtn" class="btn btn-primary">📍 Use my location</button>
+      <span id="locateStatus" class="muted" style="margin-left:12px; font-size:0.9rem;"></span>
+    </div>
+
+    <div id="resultsArea" style="display:none;">
+      <div class="location-line">
+        <strong id="cityLabel"></strong>
+        <span class="muted" id="dateLabel"></span>
+        <label for="methodSelect" class="muted" style="margin-left:auto; font-size:0.85rem;">Calculation method</label>
+        <select id="methodSelect">
+          <option value="2">ISNA (North America)</option>
+          <option value="3">Muslim World League</option>
+          <option value="4">Umm al-Qura, Makkah</option>
+          <option value="5">Egyptian Authority</option>
+          <option value="1">University of Karachi</option>
+        </select>
+      </div>
+      <div class="times-grid" id="timesGrid"></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <span>Furqan — free for everyone, always.</span>
+    <span>Times via Aladhan API (open prayer times API).</span>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/prayer.js"></script>
+</body>
+</html>
