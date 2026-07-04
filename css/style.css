@@ -1,0 +1,234 @@
+/* ============================================================
+   FURQAN — Design System
+   Palette: deep mosque-tile emerald + manuscript brass gold,
+   set on warm parchment. Ink navy for reading text.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Work+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Colors */
+  --parchment: #FAF6ED;
+  --parchment-deep: #F1EADA;
+  --ink: #1B2A3A;
+  --ink-soft: #4A5A68;
+  --emerald: #0F5D4E;
+  --emerald-deep: #0A4238;
+  --emerald-soft: #E4EFE9;
+  --brass: #C9A24B;
+  --brass-soft: #EFE3C3;
+  --rubric: #8C3A2F; /* rare accent, manuscript-red-ink */
+  --line: #DED4BC;
+
+  /* Type */
+  --font-display: 'Fraunces', serif;
+  --font-arabic: 'Amiri', serif;
+  --font-body: 'Work Sans', sans-serif;
+
+  --radius: 14px;
+  --shadow-soft: 0 4px 24px rgba(27, 42, 58, 0.08);
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--parchment);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  color: var(--emerald-deep);
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 0 0 0.5em;
+}
+
+.arabic {
+  font-family: var(--font-arabic);
+  direction: rtl;
+}
+
+a { color: inherit; text-decoration: none; }
+
+img { max-width: 100%; display: block; }
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ---------------- Header / Nav ---------------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(250, 246, 237, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+
+.site-header .container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--emerald-deep);
+}
+
+.brand .mark { width: 30px; height: 30px; }
+
+.brand .kufic {
+  font-family: var(--font-arabic);
+  color: var(--brass);
+  font-size: 1.5rem;
+}
+
+.main-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.main-nav a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+  transition: background 0.15s, color 0.15s;
+}
+
+.main-nav a:hover,
+.main-nav a.active {
+  background: var(--emerald-soft);
+  color: var(--emerald-deep);
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 1.6rem;
+  color: var(--emerald-deep);
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .main-nav {
+    position: fixed;
+    top: 72px; left: 0; right: 0;
+    background: var(--parchment);
+    border-bottom: 1px solid var(--line);
+    flex-direction: column;
+    padding: 8px 24px 20px;
+    display: none;
+  }
+  .main-nav.open { display: flex; }
+  .nav-toggle { display: block; }
+}
+
+/* ---------------- Buttons ---------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+}
+
+.btn-primary {
+  background: var(--emerald);
+  color: var(--parchment);
+}
+.btn-primary:hover { background: var(--emerald-deep); transform: translateY(-1px); }
+
+.btn-ghost {
+  background: transparent;
+  border-color: var(--line);
+  color: var(--ink);
+}
+.btn-ghost:hover { border-color: var(--emerald); color: var(--emerald-deep); }
+
+/* ---------------- Cards ---------------- */
+
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+}
+
+/* ---------------- Utility ---------------- */
+
+.section { padding: 72px 0; }
+.section-tight { padding: 40px 0; }
+.text-center { text-align: center; }
+.muted { color: var(--ink-soft); }
+.eyebrow {
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brass);
+  font-weight: 600;
+}
+
+.badge-soon {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rubric);
+  background: rgba(140, 58, 47, 0.1);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-left: 8px;
+}
+
+.footer {
+  border-top: 1px solid var(--line);
+  padding: 40px 0;
+  margin-top: 60px;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.footer .container {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* Focus visibility for accessibility */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
