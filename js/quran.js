@@ -354,8 +354,7 @@ async function render() {
       </div>`;
     }
 
-    // Define regex once, outside the map
-// 1. Show the centered top block for all Surahs EXCEPT Al-Fatiha (1) and Al-Tawbah (9)
+    // 1. Show the centered top block for all Surahs EXCEPT Al-Fatiha (1) and Al-Tawbah (9)
 const topHeader = (surahNum === 1 || surahNum === 9) ? '' : bismillahBlock;
 
 readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
@@ -363,14 +362,13 @@ readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishNa
   arabicAyahs.map((a, i) => {
     let arabicText = a.text.normalize("NFC");
 
-    // 2. For the first ayah of any surah (except 1 and 9), strip the inline Bismillah
+    // 2. Safely remove the Bismillah from the first verse without relying on character lengths
     if (i === 0 && surahNum !== 1 && surahNum !== 9) {
-      // The Uthmani Bismillah string from Alquran.cloud is exactly 39 characters long
-      const BISMILLAH_LENGTH = 39; 
+      // This broad regex matches "Bismillah..." regardless of its exact character count or specific vowel markers
+      const flexibleBismillahRegex = /^بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ\s*|^بِسْمِ.*?الرَّحِيمِ\s*/;
       
-      if (arabicText.startsWith("بِسْمِ")) {
-        arabicText = arabicText.substring(BISMILLAH_LENGTH).trim();
-      }
+      // If it finds it at the very start, it replaces it with an empty string safely
+      arabicText = arabicText.replace(flexibleBismillahRegex, '').trim();
     }
 
     return ayahRow(
@@ -382,7 +380,6 @@ readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishNa
   }).join('');
 
 attachPlayButtons();
-
 
   } catch (err) {
     readerContent.className = 'error-msg';
