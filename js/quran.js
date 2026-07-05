@@ -8,6 +8,22 @@ function mushafImageUrl(pageNum) {
   return `${MUSHAF_IMAGE_BASE}/page${String(pageNum).padStart(3, '0')}.png`;
 }
 
+// Reciters requested for Furqan. Each entry lists name fragments to match
+// against the live edition list from the API — this avoids hardcoding
+// identifiers that might be wrong or renamed.
+const RECITER_WISHLIST = [
+  { label: 'Mishary Rashid Alafasy', match: ['alafasy'] },
+  { label: 'Saad Al-Ghamdi', match: ['ghamdi', 'ghamedi', 'ghamdy'] },
+  { label: 'Ahmad Al-Ajmi', match: ['ajmy', 'ajmi'] },
+  { label: 'Abu Bakr Al-Shatri', match: ['shatri', 'shaatri', 'shatry'] },
+  { label: 'Raad Al-Kurdi', match: ['kurdi', 'kurdy'] },
+  { label: 'Noreen Mohamed Siddig', match: ['siddig', 'siddiq', 'noreen'] },
+  { label: 'Yasser Al-Dosari', match: ['dosari', 'dossari', 'dossary', 'dussary'] },
+  { label: 'Mahmoud Al-Husary', match: ['husary', 'hussary'] },
+  { label: 'Abdul Basit (Murattal)', match: ['abdulbasitmurattal', 'abdulbasit'] },
+  { label: 'Mohamed Minshawi', match: ['minshawi', 'minshawy'] }
+];
+
 const layoutSelect = document.getElementById('layoutSelect');
 const surahSelect = document.getElementById('surahSelect');
 const surahWrap = document.getElementById('surahWrap');
@@ -20,27 +36,12 @@ const transliterationToggle = document.getElementById('transliterationToggle');
 const reciterSelect = document.getElementById('reciterSelect');
 const readerContent = document.getElementById('readerContent');
 const ayahAudio = document.getElementById('ayahAudio');
+const playSurahBtn = document.getElementById('playSurahBtn');
+const nowPlayingLabel = document.getElementById('nowPlayingLabel');
 
-let TRANSLITERATION_EDITION = 'en.transliteration';
+let TRANSLITERATION_EDITION = 'en.transliteration'; // fallback; refined in init()
 const STORAGE_KEY = 'furqan-reader-prefs';
-
-
-// ✅ ADDED: Reciters list + populate function
-const RECITERS = [
-  { name: "Mishary Rashid Alafasy", id: "ar.alafasy" },
-  { name: "Abdul Basit (Murattal)", id: "ar.abdulbasitmurattal" },
-  { name: "Maher Al-Muaiqly", id: "ar.mahermuaiqly" },
-  { name: "Saad Al-Ghamdi", id: "ar.saadghamdi" },
-  { name: "Ahmed Al-Ajmi", id: "ar.ahmedajamy" }
-];
-
-function populateReciters() {
-  if (!reciterSelect) return;
-
-  reciterSelect.innerHTML = RECITERS.map(r =>
-    `<option value="${r.id}">${r.name}</option>`
-  ).join('');
-}
+let transliterationAvailable = true;
 
 
 function loadPrefs() {
@@ -58,11 +59,36 @@ async function fetchJSON(url) {
   return data.data;
 }
 
+function normalize(str) {
+  return str.toLowerCase().replace(/[^a-z]/g, '');
+}
+
+function resolveReciters(audioEditions) {
+  // audioEditions: array of {identifier, englishName, name, language, ...}
+  const arabicOnes = audioEditions.filter(e => e.language === 'ar');
+  const resolved = [];
+  const missing = [];
+
+  RECITER_WISHLIST.forEach(wanted => {
+    const found = arabicOnes.find(e => {
+      const hay = normalize(e.englishName || e.identifier || '');
+      return wanted.match.some(fragment => hay.includes(fragment));
+    });
+    if (found) {
+      resolved.push({ label: wanted.label, identifier: found.identifier });
+    } else {
+      missing.push(wanted.label);
+    }
+  });
+
+  if (missing.length) {
+    console.warn('Furqan: could not find these reciters in the API — they were left out of the dropdown:', missing.join(', '));
+  }
+  return resolved;
+}
+
 async function init() {
   const prefs = loadPrefs();
-
-  // ✅ ADDED: populate reciters BEFORE using prefs
-  populateReciters();
 
   // Populate mushaf page dropdown (1-604)
   for (let i = 1; i <= 604; i++) {
@@ -72,10 +98,11 @@ async function init() {
   }
 
   try {
-    const [surahs, translations, transliterations] = await Promise.all([
+    const [surahs, translations, transliterations, audioEditions] = await Promise.all([
       fetchJSON(`${API}/surah`),
       fetchJSON(`${API}/edition/type/translation`),
-      fetchJSON(`${API}/edition/type/transliteration`).catch(() => [])
+      fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
+      fetchJSON(`${API}/edition?format=audio&type=versebyverse`).catch(() => [])
     ]);
 
     if (transliterations && transliterations.length) {
@@ -89,65 +116,64 @@ async function init() {
       `<option value="${s.number}">${s.number}. ${s.englishName} — ${s.name}</option>`
     ).join('');
 
-    // Group translations by language
+    // Group translations by language for a friendlier dropdown
     const byLang = {};
     translations.forEach(t => {
       if (!byLang[t.language]) byLang[t.language] = [];
       byLang[t.language].push(t);
     });
-
     const langNames = new Intl.DisplayNames(['en'], { type: 'language' });
-
     const sortedLangs = Object.keys(byLang).sort((a, b) => {
-      try { return langNames.of(a).localeCompare(langNames.of(b)); }
-      catch { return a.localeCompare(b); }
+      try { return langNames.of(a).localeCompare(langNames.of(b)); } catch { return a.localeCompare(b); }
     });
 
     translationSelect.innerHTML = sortedLangs.map(lang => {
-      const options = byLang[lang].map(t =>
-        `<option value="${t.identifier}">${t.englishName || t.name}</option>`
-      ).join('');
+      const options = byLang[lang].map(t => `<option value="${t.identifier}">${t.englishName || t.name}</option>`).join('');
       let label = lang;
       try { label = langNames.of(lang); } catch {}
       return `<optgroup label="${label}">${options}</optgroup>`;
     }).join('');
 
-    // Restore preferences
+    // Reciters: resolved dynamically against the live API list
+    const reciters = resolveReciters(audioEditions || []);
+    if (reciters.length) {
+      reciterSelect.innerHTML = reciters.map(r => `<option value="${r.identifier}">${r.label}</option>`).join('');
+    } else {
+      // extremely unlikely fallback, but keeps the site working
+      reciterSelect.innerHTML = `<option value="ar.alafasy">Mishary Rashid Alafasy</option>`;
+    }
+
+    // Restore preferences, or sensible defaults
     layoutSelect.value = prefs.layout || 'verse-translation';
     surahSelect.value = prefs.surah || 1;
     pageInput.value = prefs.page || 1;
-
     if (prefs.translation) translationSelect.value = prefs.translation;
     else {
       const enSahih = translations.find(t => t.identifier === 'en.sahih');
       if (enSahih) translationSelect.value = 'en.sahih';
     }
-
-    if (prefs.reciter) reciterSelect.value = prefs.reciter;
-    else reciterSelect.value = "ar.alafasy"; // optional default
-
+    if (prefs.reciter && reciters.some(r => r.identifier === prefs.reciter)) {
+      reciterSelect.value = prefs.reciter;
+    }
     transliterationToggle.checked = !!prefs.transliteration;
 
     toggleLayoutControls();
     await render();
-
   } catch (err) {
-    readerContent.innerHTML = `<div class="error-msg">Could not load the Qur'an right now.</div>`;
+    readerContent.innerHTML = `<div class="error-msg">Could not load the Qur'an right now. Check your internet connection and reload the page.</div>`;
     console.error(err);
   }
 }
-
-let transliterationAvailable = true;
 
 function toggleLayoutControls() {
   const layout = layoutSelect.value;
   const isMushaf = layout === 'mushaf-page';
   const isFullTranslation = layout === 'full-translation';
-
   surahWrap.style.display = isMushaf ? 'none' : 'block';
   pageWrap.style.display = isMushaf ? 'block' : 'none';
   translationWrap.style.display = isMushaf ? 'none' : 'block';
   transliterationWrap.style.display = (!transliterationAvailable || isMushaf || isFullTranslation) ? 'none' : 'flex';
+  playSurahBtn.style.display = isMushaf ? 'none' : 'inline-flex';
 }
 
 function currentPrefs() {
@@ -161,10 +187,29 @@ function currentPrefs() {
   };
 }
 
-function playAyah(globalAyahNumber) {
+function playAyah(globalAyahNumber, label) {
   const reciter = reciterSelect.value;
   ayahAudio.src = `https://cdn.islamic.network/quran/audio/128/${reciter}/${globalAyahNumber}.mp3`;
   ayahAudio.play().catch(() => {});
+  nowPlayingLabel.textContent = label || 'Playing verse…';
+}
+
+function playFullSurah() {
+  const reciter = reciterSelect.value;
+  const surahNum = surahSelect.value;
+  const surahLabel = surahSelect.options[surahSelect.selectedIndex]
+    ? surahSelect.options[surahSelect.selectedIndex].text
+    : `Surah ${surahNum}`;
+
+  nowPlayingLabel.textContent = `Loading full surah: ${surahLabel}…`;
+  ayahAudio.onerror = () => {
+    nowPlayingLabel.textContent = `Sorry — a full-surah recording isn't available for this reciter. Try another reciter, or use "Play verse" below instead.`;
+    ayahAudio.onerror = null;
+  };
+  ayahAudio.src = `https://cdn.islamic.network/quran/audio-surah/128/${reciter}/${surahNum}.mp3`;
+  ayahAudio.play()
+    .then(() => { nowPlayingLabel.textContent = `Playing full surah: ${surahLabel}`; })
+    .catch(() => {});
 }
 
 function ayahRow(arabicText, translationText, transliterationText, ayahNumInSurah, globalNumber, showArabic, showTranslation, showTransliteration) {
@@ -174,7 +219,7 @@ function ayahRow(arabicText, translationText, transliterationText, ayahNumInSura
       ${showTransliteration && transliterationText ? `<div class="transliteration-line">${transliterationText}</div>` : ''}
       ${showTranslation ? `<div class="ayah-translation">${translationText}</div>` : ''}
       <div class="ayah-tools">
-        <button class="play-btn" data-ayah="${globalNumber}">▶ Play verse</button>
+        <button class="play-btn" data-ayah="${globalNumber}" data-label="Playing verse ${ayahNumInSurah}">▶ Play verse</button>
       </div>
     </div>`;
 }
@@ -188,101 +233,34 @@ async function render() {
   try {
     if (layout === 'mushaf-page') {
       const page = parseInt(pageInput.value, 10);
-
       readerContent.className = 'mushaf-page-view';
       readerContent.innerHTML = `
-        <img src="${mushafImageUrl(page)}">
-      `;
+        <img src="${mushafImageUrl(page)}" alt="Mushaf page ${page}"
+             onerror="this.onerror=null; this.replaceWith(Object.assign(document.createElement('p'), {className:'error-msg', textContent:'This page image could not load. Try a nearby page or reload.'}));">
+        <div class="mushaf-nav">
+          <button id="prevPageBtn" ${page <= 1 ? 'disabled' : ''}>← Previous</button>
+          <span class="muted">Page ${page} of 604</span>
+          <button id="nextPageBtn" ${page >= 604 ? 'disabled' : ''}>Next →</button>
+        </div>`;
+      const prevBtn = document.getElementById('prevPageBtn');
+      const nextBtn = document.getElementById('nextPageBtn');
+      if (prevBtn) prevBtn.addEventListener('click', () => { pageInput.value = page - 1; render(); });
+      if (nextBtn) nextBtn.addEventListener('click', () => { pageInput.value = page + 1; render(); });
       return;
     }
 
     const surahNum = surahSelect.value;
     const translationId = translationSelect.value;
 
-    const combined = await fetchJSON(`${API}/surah/${surahNum}/editions/quran-uthmani,${translationId}`);
+    if (layout === 'full-translation') {
+      const translationData = await fetchJSON(`${API}/surah/${surahNum}/${translationId}`);
+      readerContent.className = 'full-translation-block';
+      readerContent.style.padding = '20px 0';
+      readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${translationData.englishName} — ${translationData.name}</h2>` +
+        translationData.ayahs.map(a => `<p><span class="verse-num">${a.numberInSurah}.</span>${a.text}</p>`).join('');
+      return;
+    }
 
-    const arabicAyahs = combined[0].ayahs;
-    const translationAyahs = combined[1].ayahs;
-
-    readerContent.className = '';
-    let bismillahBlock = '';
-
-if (surahNum != 1 && surahNum != 9) {
-  bismillahBlock = `
-    <div class="ayah-block">
-      <div class="ayah-arabic" style="text-align:center;">
-        بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
-      </div>
-    </div>
-  `;
-}
-  readerContent.innerHTML = bismillahBlock + arabicAyahs.map((a, i) =>
-  ayahRow(
-    (i === 0 && surahNum != 1 && surahNum != 9)
-      ? a.text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim()
-      : a.text,
-        translationAyahs[i]?.text || '',
-        '',
-        a.numberInSurah,
-        a.number,
-        true,
-        true,
-        false
-      )
-    ).join('');
-
-    attachPlayButtons();
-
-  } catch (err) {
-    readerContent.className = 'error-msg';
-    readerContent.textContent = 'Error loading.';
-    console.error(err);
-  }
-}
-
-function attachPlayButtons() {
-  readerContent.querySelectorAll('.play-btn').forEach(btn => {
-    btn.addEventListener('click', () => playAyah(btn.dataset.ayah));
-  });
-}
-
-layoutSelect.addEventListener('change', () => { toggleLayoutControls(); render(); });
-surahSelect.addEventListener('change', render);
-pageInput.addEventListener('change', render);
-translationSelect.addEventListener('change', render);
-transliterationToggle.addEventListener('change', render);
-reciterSelect.addEventListener('change', () => savePrefs(currentPrefs()));
-
-// ✅ FULL SURAH PLAY (WORKING FIX)
-document.addEventListener("DOMContentLoaded", () => {
-  const playSurahBtn = document.getElementById('playSurahBtn');
-  const nowPlayingLabel = document.getElementById('nowPlayingLabel');
-
-  if (!playSurahBtn) return;
-
-  playSurahBtn.addEventListener('click', () => {
-    const reciter = reciterSelect.value;
-    const surah = surahSelect.value;
-
-    if (!reciter || !surah) return;
-
-    fetch(`https://api.quran.com/api/v4/chapter_recitations/${reciter}/${surah}`)
-      .then(res => res.json())
-      .then(data => {
-        let url = data.audio_file.audio_url;
-
-        if (!url.startsWith("http")) {
-          url = "https://verses.quran.com/" + url;
-        }
-
-        ayahAudio.src = url;
-        ayahAudio.play().catch(() => {});
-
-        const selectedSurahName = surahSelect.options[surahSelect.selectedIndex].text;
-        nowPlayingLabel.textContent = `Playing: ${selectedSurahName}`;
-      })
-      .catch(err => console.error(err));
-  });
-});
-
-init();
+    // verse-translation or arabic-only, optionally with transliteration
+    const showTranslit = transliterationToggle.checked;
+    const editionList = ['quran-uthmani', translationId];
