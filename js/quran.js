@@ -78,7 +78,7 @@ function resolveReciters(audioEditions) {
 
   RECITER_WISHLIST.forEach(wanted => {
     const found = arabicOnes.find(e => {
-      const hay = normalize(e.englishName || e.identifier || '');
+      const hay = normalize((e.englishName || '') + ' ' + (e.identifier || ''));
       return wanted.match.some(fragment => hay.includes(fragment));
     });
     if (found) {
@@ -94,45 +94,61 @@ function resolveReciters(audioEditions) {
   return resolved;
 }
 
-function resolveRecitersFromCatalog(identifiers) {
-  // identifiers: plain array of strings like "ar.alafasy", from the larger
-  // full-surah CDN catalog (~100 reciters), used to fill in names the
-  // smaller official edition list doesn't have.
-  const resolved = [];
-  const missing = [];
-  RECITER_WISHLIST.forEach(wanted => {
-    const found = identifiers.find(id => {
-      const hay = normalize(id);
-      return wanted.match.some(fragment => hay.includes(fragment));
-    });
-    if (found) resolved.push({ label: wanted.label, identifier: found });
-    else missing.push(wanted.label);
+// Candidate identifier guesses for reciters not in the official small edition
+// list. cdn.islamic.network blocks cross-origin JSON reads (confirmed via
+// console CORS error), so we can't fetch a full catalog — but loading an
+// audio file for playback is NOT subject to CORS, so we can "probe" each
+// guess by trying to load it and seeing which one actually exists.
+const RECITER_CANDIDATES = {
+  'Saad Al-Ghamdi': ['ar.saadalghamdi', 'ar.ghamdi', 'ar.saadghamdi', 'ar.alghamdi'],
+  'Ahmad Al-Ajmi': ['ar.ahmedajmy', 'ar.ajmy', 'ar.ahmadalajmy', 'ar.ajmi'],
+  'Abu Bakr Al-Shatri': ['ar.shaatri', 'ar.shatri', 'ar.abubakralshatri', 'ar.shatry'],
+  'Raad Al-Kurdi': ['ar.raadalkurdi', 'ar.kurdi', 'ar.raadkurdi'],
+  'Noreen Mohamed Siddig': ['ar.noreensiddig', 'ar.siddig', 'ar.norinsiddiq'],
+  'Yasser Al-Dosari': ['ar.yasseraldosari', 'ar.dosari', 'ar.yasserdosari', 'ar.dossari'],
+  'Abdul Basit (Murattal)': ['ar.abdulbasitmurattal'],
+  'Mohamed Minshawi': ['ar.minshawi', 'ar.minshawimurattal', 'ar.mohammedminshawi']
+};
+
+// Tries to load Surah 1 (short) for a given reciter identifier and resolves
+// true/false depending on whether the file actually exists on the CDN.
+function probeReciter(identifier) {
+  return new Promise(resolve => {
+    const audio = new Audio();
+    let settled = false;
+    const finish = (ok) => {
+      if (settled) return;
+      settled = true;
+      audio.src = '';
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), 6000);
+    audio.addEventListener('loadedmetadata', () => { clearTimeout(timer); finish(true); });
+    audio.addEventListener('error', () => { clearTimeout(timer); finish(false); });
+    audio.preload = 'metadata';
+    audio.src = `https://cdn.islamic.network/quran/audio-surah/128/${identifier}/1.mp3`;
   });
-  if (missing.length) {
-    console.warn('Furqan: still could not find these reciters anywhere — leaving them out:', missing.join(', '));
-  }
-  return resolved;
 }
 
-// Fetches the larger (~100 reciter) full-surah catalog. This file is bigger
-// than the other API calls, so it's always loaded in the BACKGROUND, after
-// the page is already usable — never blocks initial load.
-async function fetchReciterCatalog() {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
-  try {
-    const res = await fetch('https://cdn.islamic.network/quran/info/by-surah/info.json', { signal: controller.signal });
-    if (!res.ok) return [];
-    const tree = await res.json();
-    const bitrateDirs = (tree[0] && tree[0].contents) || [];
-    const bitrate128 = bitrateDirs.find(d => d.name === '128');
-    if (!bitrate128) return [];
-    return (bitrate128.contents || []).map(r => r.name);
-  } catch {
-    return [];
-  } finally {
-    clearTimeout(timeout);
-  }
+// Probes every missing reciter's candidate list in the background and
+// upgrades the dropdown as real matches are confirmed. Never blocks anything.
+async function discoverMissingReciters(alreadyFound) {
+  const stillMissing = RECITER_WISHLIST.filter(w => !alreadyFound.some(f => f.label === w.label));
+  const discovered = [];
+
+  await Promise.all(stillMissing.map(async wanted => {
+    const candidates = RECITER_CANDIDATES[wanted.label] || [];
+    for (const candidate of candidates) {
+      const works = await probeReciter(candidate);
+      if (works) {
+        discovered.push({ label: wanted.label, identifier: candidate });
+        return;
+      }
+    }
+    console.warn(`Furqan: no working audio found for "${wanted.label}" among candidates:`, candidates);
+  }));
+
+  return discovered;
 }
 
 function populateReciterSelect(reciters) {
@@ -157,16 +173,16 @@ async function init() {
 
   try {
     const [surahs, translations, transliterations, audioEditions, bismillahAyah] = await Promise.all([
-  fetchJSON(`${API}/surah`),
-  fetchJSON(`${API}/edition/type/translation`),
-  fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
-  fetchJSON(`${API}/edition/type/versebyverse`).catch(() => []),
-  fetchJSON(`${API}/ayah/1/quran-uthmani`).catch(() => null)
-]);
+      fetchJSON(`${API}/surah`),
+      fetchJSON(`${API}/edition/type/translation`),
+      fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
+      fetchJSON(`${API}/edition/type/versebyverse`).catch(() => []),
+      fetchJSON(`${API}/ayah/1/quran-uthmani`).catch(() => null)
+    ]);
 
-if (bismillahAyah && bismillahAyah.text) {
-  BISMILLAH_TEXT = bismillahAyah.text.trim();
-}
+    if (bismillahAyah && bismillahAyah.text) {
+      BISMILLAH_TEXT = bismillahAyah.text.trim();
+    }
 
     if (transliterations && transliterations.length) {
       const enTranslit = transliterations.find(t => t.language === 'en') || transliterations[0];
@@ -219,16 +235,13 @@ if (bismillahAyah && bismillahAyah.text) {
     toggleLayoutControls();
     await render();
 
-    // Now, in the background, fetch the much bigger full-surah reciter
-    // catalog (~100 names) and upgrade the dropdown once it's ready.
-    // This never blocks or delays anything the user already sees.
-    fetchReciterCatalog().then(catalogIds => {
-      if (!catalogIds.length) return;
-      const catalogReciters = resolveRecitersFromCatalog(catalogIds);
-      if (catalogReciters.length > reciters.length) {
-        reciters = catalogReciters;
-        populateReciterSelect(reciters);
-      }
+    // Now, in the background, probe for reciters not in the official list
+    // by testing real audio playback (this works even though CORS blocks
+    // reading their JSON catalog directly). Upgrades the dropdown quietly.
+    discoverMissingReciters(reciters).then(discovered => {
+      if (!discovered.length) return;
+      reciters = reciters.concat(discovered);
+      populateReciterSelect(reciters);
     });
 
   } catch (err) {
@@ -353,28 +366,31 @@ async function render() {
     readerContent.className = '';
     readerContent.style.padding = '20px 0';
 
-let bismillahBlock = '';
-if (BISMILLAH_TEXT && surahNum != 1 && surahNum != 9) {
-  bismillahBlock = `<div class="bismillah-block">
-    <div class="ayah-arabic">${BISMILLAH_TEXT}</div>
-  </div>`;
-}
-
-readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
-  bismillahBlock +
-  arabicAyahs.map((a, i) => {
-    let arabicText = a.text.trim();
-    if (i === 0 && BISMILLAH_TEXT && surahNum != 1 && surahNum != 9 && arabicText.startsWith(BISMILLAH_TEXT)) {
-      arabicText = arabicText.slice(BISMILLAH_TEXT.length).trim();
+    let bismillahBlock = '';
+    if (BISMILLAH_TEXT && surahNum != 1 && surahNum != 9) {
+      bismillahBlock = `<div class="bismillah-block">
+        <div class="ayah-arabic">${BISMILLAH_TEXT}</div>
+      </div>`;
     }
-    return ayahRow(
-      arabicText,
-      translationAyahs[i] ? translationAyahs[i].text : '',
-      transliterationAyahs && transliterationAyahs[i] ? transliterationAyahs[i].text : '',
-      a.numberInSurah, a.number, true, showTranslation, showTranslit
-    );
-  }).join('');
-attachPlayButtons();
+
+    readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
+      bismillahBlock +
+      arabicAyahs.map((a, i) => {
+        // The first ayah's text already includes the Bismillah for most surahs;
+        // strip it here since we show it once above, separately.
+        let arabicText = a.text;
+        if (i === 0 && BISMILLAH_TEXT && surahNum != 1 && surahNum != 9 && arabicText.startsWith(BISMILLAH_TEXT)) {
+          arabicText = arabicText.slice(BISMILLAH_TEXT.length).trim();
+        }
+        return ayahRow(
+          arabicText,
+          translationAyahs[i] ? translationAyahs[i].text : '',
+          transliterationAyahs && transliterationAyahs[i] ? transliterationAyahs[i].text : '',
+          a.numberInSurah, a.number, true, showTranslation, showTranslit
+        );
+      }).join('');
+    attachPlayButtons();
+
   } catch (err) {
     readerContent.className = 'error-msg';
     readerContent.textContent = 'Something went wrong loading this passage. Please try a different selection or reload.';
