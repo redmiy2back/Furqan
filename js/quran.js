@@ -359,9 +359,11 @@ async function render() {
       arabicAyahs.map((a, i) => {
         // The first ayah's text already includes the Bismillah for most surahs;
         // strip it here since we show it once above, separately.
-        const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
-          ? a.text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim()
-          : a.text;
+        const bismillahRegex = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/;
+const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
+  ? a.text.replace(bismillahRegex, '').trim()
+  : a.text;
+
         return ayahRow(
           arabicText,
           translationAyahs[i] ? translationAyahs[i].text : '',
