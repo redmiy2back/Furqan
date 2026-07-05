@@ -42,6 +42,7 @@ const nowPlayingLabel = document.getElementById('nowPlayingLabel');
 let TRANSLITERATION_EDITION = 'en.transliteration'; // fallback; refined in init()
 const STORAGE_KEY = 'furqan-reader-prefs';
 let transliterationAvailable = true;
+let BISMILLAH_TEXT = null; // fetched once from the API itself, guaranteed exact match
 
 
 function loadPrefs() {
@@ -155,12 +156,17 @@ async function init() {
   }
 
   try {
-    const [surahs, translations, transliterations, audioEditions] = await Promise.all([
-      fetchJSON(`${API}/surah`),
-      fetchJSON(`${API}/edition/type/translation`),
-      fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
-      fetchJSON(`${API}/edition/type/versebyverse`).catch(() => [])
-    ]);
+    const [surahs, translations, transliterations, audioEditions, bismillahAyah] = await Promise.all([
+  fetchJSON(`${API}/surah`),
+  fetchJSON(`${API}/edition/type/translation`),
+  fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
+  fetchJSON(`${API}/edition/type/versebyverse`).catch(() => []),
+  fetchJSON(`${API}/ayah/1/quran-uthmani`).catch(() => null)
+]);
+
+if (bismillahAyah && bismillahAyah.text) {
+  BISMILLAH_TEXT = bismillahAyah.text.trim();
+}
 
     if (transliterations && transliterations.length) {
       const enTranslit = transliterations.find(t => t.language === 'en') || transliterations[0];
@@ -347,38 +353,20 @@ async function render() {
     readerContent.className = '';
     readerContent.style.padding = '20px 0';
 
-   let bismillahBlock = '';
-if (surahNum != 1 && surahNum != 9) {
+let bismillahBlock = '';
+if (BISMILLAH_TEXT && surahNum != 1 && surahNum != 9) {
   bismillahBlock = `<div class="bismillah-block">
-    <div class="ayah-arabic">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+    <div class="ayah-arabic">${BISMILLAH_TEXT}</div>
   </div>`;
 }
 
-// 1. Show the centered top block for all Surahs EXCEPT Al-Fatiha (1) and Al-Tawbah (9)
-const topHeader = (surahNum === 1 || surahNum === 9) ? '' : bismillahBlock;
-
-readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
-  topHeader + 
+readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
+  bismillahBlock +
   arabicAyahs.map((a, i) => {
-    let arabicText = a.text.normalize("NFC").trim();
-
-    // 2. Safely strip the Bismillah from the first verse
-    if (i === 0 && surahNum !== 1 && surahNum !== 9) {
-      // This bulletproof regex strips EVERYTHING up to and including the word "الرَّحِيمِ", handling any dynamic vowel marks
-      const absoluteBismillahRegex = /^بِسْمِ.*?الرَّحِيمِ\s*/;
-      
-      // Secondary fallback: If the API sends it without vowel markings
-      const cleanBismillahRegex = /^بسم.*?الرحيم\s*/;
-
-      if (absoluteBismillahRegex.test(arabicText)) {
-        arabicText = arabicText.replace(absoluteBismillahRegex, '');
-      } else {
-        arabicText = arabicText.replace(cleanBismillahRegex, '');
-      }
-      
-      arabicText = arabicText.trim();
+    let arabicText = a.text.trim();
+    if (i === 0 && BISMILLAH_TEXT && surahNum != 1 && surahNum != 9 && arabicText.startsWith(BISMILLAH_TEXT)) {
+      arabicText = arabicText.slice(BISMILLAH_TEXT.length).trim();
     }
-
     return ayahRow(
       arabicText,
       translationAyahs[i] ? translationAyahs[i].text : '',
@@ -386,7 +374,6 @@ readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishNa
       a.numberInSurah, a.number, true, showTranslation, showTranslit
     );
   }).join('');
-
 attachPlayButtons();
   } catch (err) {
     readerContent.className = 'error-msg';
