@@ -355,8 +355,8 @@ async function render() {
     }
 
     // Define regex once, outside the map
-const bismillahRegex = /^بِسْمِ.*?الرَّحِيمِ\s*/;
-
+// Matches "Bismillah al-Rahman al-Rahim" with or without any diacritics/vowels
+const bismillahRegex = /^بِ?سْمِ?\s*اللَّهِ?\s*الرَّحْمَٰنِ?\s*الرَّحِـيـمِ?\s*/;
 readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
   bismillahBlock +
   arabicAyahs.map((a, i) => {
