@@ -70,8 +70,8 @@ function normalize(str) {
 }
 
 function resolveReciters(audioEditions) {
-  // audioEditions: array of {identifier, englishName, name, language, ...}
-  const arabicOnes = audioEditions.filter(e => e.language === 'ar');
+  // audioEditions: array of {identifier, englishName, name, language, format, ...}
+  const arabicOnes = audioEditions.filter(e => e.language === 'ar' && e.format === 'audio');
   const resolved = [];
   const missing = [];
 
@@ -104,7 +104,7 @@ async function init() {
   }
 
   try {
-   const [surahs, translations, transliterations, audioEditions] = await Promise.all([
+    const [surahs, translations, transliterations, audioEditions] = await Promise.all([
       fetchJSON(`${API}/surah`),
       fetchJSON(`${API}/edition/type/translation`),
       fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
@@ -270,3 +270,60 @@ async function render() {
     // verse-translation or arabic-only, optionally with transliteration
     const showTranslit = transliterationToggle.checked;
     const editionList = ['quran-uthmani', translationId];
+    if (showTranslit) editionList.push(TRANSLITERATION_EDITION);
+
+    const combined = await fetchJSON(`${API}/surah/${surahNum}/editions/${editionList.join(',')}`);
+    const arabicAyahs = combined[0].ayahs;
+    const translationAyahs = combined[1].ayahs;
+    const transliterationAyahs = showTranslit && combined[2] ? combined[2].ayahs : null;
+    const showTranslation = layout === 'verse-translation';
+
+    readerContent.className = '';
+    readerContent.style.padding = '20px 0';
+
+    let bismillahBlock = '';
+    if (surahNum != 1 && surahNum != 9) {
+      bismillahBlock = `<div class="ayah-block" style="border-bottom:none;">
+        <div class="ayah-arabic" style="text-align:center;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+      </div>`;
+    }
+
+    readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
+      bismillahBlock +
+      arabicAyahs.map((a, i) => {
+        // The first ayah's text already includes the Bismillah for most surahs;
+        // strip it here since we show it once above, separately.
+        const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
+          ? a.text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim()
+          : a.text;
+        return ayahRow(
+          arabicText,
+          translationAyahs[i] ? translationAyahs[i].text : '',
+          transliterationAyahs && transliterationAyahs[i] ? transliterationAyahs[i].text : '',
+          a.numberInSurah, a.number, true, showTranslation, showTranslit
+        );
+      }).join('');
+    attachPlayButtons();
+
+  } catch (err) {
+    readerContent.className = 'error-msg';
+    readerContent.textContent = 'Something went wrong loading this passage. Please try a different selection or reload.';
+    console.error(err);
+  }
+}
+
+function attachPlayButtons() {
+  readerContent.querySelectorAll('.play-btn').forEach(btn => {
+    btn.addEventListener('click', () => playAyah(btn.dataset.ayah, btn.dataset.label));
+  });
+}
+
+layoutSelect.addEventListener('change', () => { toggleLayoutControls(); render(); });
+surahSelect.addEventListener('change', render);
+pageInput.addEventListener('change', render);
+translationSelect.addEventListener('change', render);
+transliterationToggle.addEventListener('change', render);
+reciterSelect.addEventListener('change', () => savePrefs(currentPrefs()));
+playSurahBtn.addEventListener('click', playFullSurah);
+
+init();
