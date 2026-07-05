@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Furqan — The Quran, made easy to read, hear, and learn</title>
 <meta name="description" content="Furqan is a free Quran companion: read in Arabic or your language, get prayer times, memorize with a guided teacher, search duas, and ask questions — no ads, ever.">
+<script>
+  (function() {
+    const saved = localStorage.getItem('furqan-theme');
+    const theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+  })();
+</script>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
