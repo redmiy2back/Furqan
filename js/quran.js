@@ -88,9 +88,60 @@ function resolveReciters(audioEditions) {
   });
 
   if (missing.length) {
-    console.warn('Furqan: could not find these reciters in the API — they were left out of the dropdown:', missing.join(', '));
+    console.warn('Furqan: could not find these reciters in the official ayah-level list (checking the larger catalog next):', missing.join(', '));
   }
   return resolved;
+}
+
+function resolveRecitersFromCatalog(identifiers) {
+  // identifiers: plain array of strings like "ar.alafasy", from the larger
+  // full-surah CDN catalog (~100 reciters), used to fill in names the
+  // smaller official edition list doesn't have.
+  const resolved = [];
+  const missing = [];
+  RECITER_WISHLIST.forEach(wanted => {
+    const found = identifiers.find(id => {
+      const hay = normalize(id);
+      return wanted.match.some(fragment => hay.includes(fragment));
+    });
+    if (found) resolved.push({ label: wanted.label, identifier: found });
+    else missing.push(wanted.label);
+  });
+  if (missing.length) {
+    console.warn('Furqan: still could not find these reciters anywhere — leaving them out:', missing.join(', '));
+  }
+  return resolved;
+}
+
+// Fetches the larger (~100 reciter) full-surah catalog. This file is bigger
+// than the other API calls, so it's always loaded in the BACKGROUND, after
+// the page is already usable — never blocks initial load.
+async function fetchReciterCatalog() {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 20000);
+  try {
+    const res = await fetch('https://cdn.islamic.network/quran/info/by-surah/info.json', { signal: controller.signal });
+    if (!res.ok) return [];
+    const tree = await res.json();
+    const bitrateDirs = (tree[0] && tree[0].contents) || [];
+    const bitrate128 = bitrateDirs.find(d => d.name === '128');
+    if (!bitrate128) return [];
+    return (bitrate128.contents || []).map(r => r.name);
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function populateReciterSelect(reciters) {
+  const previousValue = reciterSelect.value;
+  reciterSelect.innerHTML = reciters.length
+    ? reciters.map(r => `<option value="${r.identifier}">${r.label}</option>`).join('')
+    : `<option value="ar.alafasy">Mishary Rashid Alafasy</option>`;
+  if (reciters.some(r => r.identifier === previousValue)) {
+    reciterSelect.value = previousValue;
+  }
 }
 
 async function init() {
@@ -140,14 +191,10 @@ async function init() {
       return `<optgroup label="${label}">${options}</optgroup>`;
     }).join('');
 
-    // Reciters: resolved dynamically against the live API list
-    const reciters = resolveReciters(audioEditions || []);
-    if (reciters.length) {
-      reciterSelect.innerHTML = reciters.map(r => `<option value="${r.identifier}">${r.label}</option>`).join('');
-    } else {
-      // extremely unlikely fallback, but keeps the site working
-      reciterSelect.innerHTML = `<option value="ar.alafasy">Mishary Rashid Alafasy</option>`;
-    }
+    // Reciters — start with whatever the small official list gives us right away
+    // (usually just Alafasy + Husary), so the dropdown is never stuck loading.
+    let reciters = resolveReciters(audioEditions || []);
+    populateReciterSelect(reciters);
 
     // Restore preferences, or sensible defaults
     layoutSelect.value = prefs.layout || 'verse-translation';
@@ -165,6 +212,19 @@ async function init() {
 
     toggleLayoutControls();
     await render();
+
+    // Now, in the background, fetch the much bigger full-surah reciter
+    // catalog (~100 names) and upgrade the dropdown once it's ready.
+    // This never blocks or delays anything the user already sees.
+    fetchReciterCatalog().then(catalogIds => {
+      if (!catalogIds.length) return;
+      const catalogReciters = resolveRecitersFromCatalog(catalogIds);
+      if (catalogReciters.length > reciters.length) {
+        reciters = catalogReciters;
+        populateReciterSelect(reciters);
+      }
+    });
+
   } catch (err) {
     readerContent.innerHTML = `<div class="error-msg">Could not load the Qur'an right now. Check your internet connection and reload the page.</div>`;
     console.error(err);
@@ -195,9 +255,15 @@ function currentPrefs() {
 
 function playAyah(globalAyahNumber, label) {
   const reciter = reciterSelect.value;
+  nowPlayingLabel.textContent = label ? `Loading: ${label}…` : 'Loading verse…';
+  ayahAudio.onerror = () => {
+    nowPlayingLabel.textContent = `Per-verse audio isn't available for this reciter — try "Play full surah" instead, or pick another reciter.`;
+    ayahAudio.onerror = null;
+  };
   ayahAudio.src = `https://cdn.islamic.network/quran/audio/128/${reciter}/${globalAyahNumber}.mp3`;
-  ayahAudio.play().catch(() => {});
-  nowPlayingLabel.textContent = label || 'Playing verse…';
+  ayahAudio.play()
+    .then(() => { nowPlayingLabel.textContent = label || 'Playing verse…'; })
+    .catch(() => {});
 }
 
 function playFullSurah() {
@@ -283,8 +349,8 @@ async function render() {
 
     let bismillahBlock = '';
     if (surahNum != 1 && surahNum != 9) {
-      bismillahBlock = `<div class="ayah-block" style="border-bottom:none;">
-        <div class="ayah-arabic" style="text-align:center;">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+      bismillahBlock = `<div class="bismillah-block">
+        <div class="ayah-arabic">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
       </div>`;
     }
 
