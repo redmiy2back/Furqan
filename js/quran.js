@@ -355,13 +355,23 @@ async function render() {
     }
 
     // Define regex once, outside the map
-// Matches "Bismillah al-Rahman al-Rahim" with or without any diacritics/vowels
+// 1. Show the centered top block for all Surahs EXCEPT Al-Fatiha (1) and Al-Tawbah (9)
+const topHeader = (surahNum === 1 || surahNum === 9) ? '' : bismillahBlock;
+
 readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
-  // Hides the separate top header block so the API's built-in Bismillah doesn't repeat
-  (surahNum === 1 || surahNum === 9 ? '' : '') + 
+  topHeader + 
   arabicAyahs.map((a, i) => {
-    // Keeps the text exactly as it comes from the API—no complex regex cleaning needed
-    const arabicText = a.text.normalize("NFC");
+    let arabicText = a.text.normalize("NFC");
+
+    // 2. For the first ayah of any surah (except 1 and 9), strip the inline Bismillah
+    if (i === 0 && surahNum !== 1 && surahNum !== 9) {
+      // The Uthmani Bismillah string from Alquran.cloud is exactly 39 characters long
+      const BISMILLAH_LENGTH = 39; 
+      
+      if (arabicText.startsWith("بِسْمِ")) {
+        arabicText = arabicText.substring(BISMILLAH_LENGTH).trim();
+      }
+    }
 
     return ayahRow(
       arabicText,
@@ -372,7 +382,6 @@ readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishNa
   }).join('');
 
 attachPlayButtons();
-
 
 
   } catch (err) {
