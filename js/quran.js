@@ -354,24 +354,27 @@ async function render() {
       </div>`;
     }
 
-    readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
-      bismillahBlock +
-      arabicAyahs.map((a, i) => {
-        // The first ayah's text already includes the Bismillah for most surahs;
-        // strip it here since we show it once above, separately.
-        const bismillahRegex = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/;
-const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
-  ? a.text.replace(bismillahRegex, '').trim()
-  : a.text;
+    // Define regex once, outside the map
+const bismillahRegex = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/;
 
-        return ayahRow(
-          arabicText,
-          translationAyahs[i] ? translationAyahs[i].text : '',
-          transliterationAyahs && transliterationAyahs[i] ? transliterationAyahs[i].text : '',
-          a.numberInSurah, a.number, true, showTranslation, showTranslit
-        );
-      }).join('');
-    attachPlayButtons();
+readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
+  bismillahBlock +
+  arabicAyahs.map((a, i) => {
+    // Strip Bismillah from first ayah if needed
+    const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
+      ? a.text.replace(bismillahRegex, '').trim()
+      : a.text;
+
+    return ayahRow(
+      arabicText,
+      translationAyahs[i] ? translationAyahs[i].text : '',
+      transliterationAyahs && transliterationAyahs[i] ? transliterationAyahs[i].text : '',
+      a.numberInSurah, a.number, true, showTranslation, showTranslit
+    );
+  }).join('');
+
+attachPlayButtons();
+
 
   } catch (err) {
     readerContent.className = 'error-msg';
