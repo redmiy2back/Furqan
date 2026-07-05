@@ -355,15 +355,15 @@ async function render() {
     }
 
     // Define regex once, outside the map
-const bismillahRegex = /^بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ\s*/;
+const bismillahRegex = /^بِسْمِ.*?الرَّحِيمِ\s*/;
 
-readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} — ${combined[0].name}</h2>` +
+readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
   bismillahBlock +
   arabicAyahs.map((a, i) => {
-    // Strip Bismillah from first ayah if needed
+    const normalized = a.text.normalize("NFC");
     const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
-      ? a.text.replace(bismillahRegex, '').trim()
-      : a.text;
+      ? normalized.replace(bismillahRegex, '').trim()
+      : normalized;
 
     return ayahRow(
       arabicText,
@@ -374,6 +374,7 @@ readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishNa
   }).join('');
 
 attachPlayButtons();
+
 
 
   } catch (err) {
