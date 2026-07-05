@@ -53,10 +53,16 @@ function savePrefs(p) {
 }
 
 async function fetchJSON(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Request failed: ' + url);
-  const data = await res.json();
-  return data.data;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error('Request failed: ' + url);
+    const data = await res.json();
+    return data.data;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function normalize(str) {
@@ -98,11 +104,11 @@ async function init() {
   }
 
   try {
-    const [surahs, translations, transliterations, audioEditions] = await Promise.all([
+   const [surahs, translations, transliterations, audioEditions] = await Promise.all([
       fetchJSON(`${API}/surah`),
       fetchJSON(`${API}/edition/type/translation`),
       fetchJSON(`${API}/edition/type/transliteration`).catch(() => []),
-      fetchJSON(`${API}/edition?format=audio&type=versebyverse`).catch(() => [])
+      fetchJSON(`${API}/edition/type/versebyverse`).catch(() => [])
     ]);
 
     if (transliterations && transliterations.length) {
