@@ -356,14 +356,12 @@ async function render() {
 
     // Define regex once, outside the map
 // Matches "Bismillah al-Rahman al-Rahim" with or without any diacritics/vowels
-const bismillahRegex = /^بِ?سْمِ?\s*اللَّهِ?\s*الرَّحْمَٰنِ?\s*الرَّحِـيـمِ?\s*/;
 readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
-  bismillahBlock +
+  // Hides the separate top header block so the API's built-in Bismillah doesn't repeat
+  (surahNum === 1 || surahNum === 9 ? '' : '') + 
   arabicAyahs.map((a, i) => {
-    const normalized = a.text.normalize("NFC");
-    const arabicText = (i === 0 && surahNum != 1 && surahNum != 9)
-      ? normalized.replace(bismillahRegex, '').trim()
-      : normalized;
+    // Keeps the text exactly as it comes from the API—no complex regex cleaning needed
+    const arabicText = a.text.normalize("NFC");
 
     return ayahRow(
       arabicText,
