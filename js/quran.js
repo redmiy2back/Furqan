@@ -347,28 +347,36 @@ async function render() {
     readerContent.className = '';
     readerContent.style.padding = '20px 0';
 
-    let bismillahBlock = '';
-    if (surahNum != 1 && surahNum != 9) {
-      bismillahBlock = `<div class="bismillah-block">
-        <div class="ayah-arabic">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
-      </div>`;
-    }
+   let bismillahBlock = '';
+if (surahNum != 1 && surahNum != 9) {
+  bismillahBlock = `<div class="bismillah-block">
+    <div class="ayah-arabic">بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+  </div>`;
+}
 
-    // 1. Show the centered top block for all Surahs EXCEPT Al-Fatiha (1) and Al-Tawbah (9)
+// 1. Show the centered top block for all Surahs EXCEPT Al-Fatiha (1) and Al-Tawbah (9)
 const topHeader = (surahNum === 1 || surahNum === 9) ? '' : bismillahBlock;
 
 readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishName} – ${combined[0].name}</h2>` +
   topHeader + 
   arabicAyahs.map((a, i) => {
-    let arabicText = a.text.normalize("NFC");
+    let arabicText = a.text.normalize("NFC").trim();
 
-    // 2. Safely remove the Bismillah from the first verse without relying on character lengths
+    // 2. Safely strip the Bismillah from the first verse
     if (i === 0 && surahNum !== 1 && surahNum !== 9) {
-      // This broad regex matches "Bismillah..." regardless of its exact character count or specific vowel markers
-      const flexibleBismillahRegex = /^بِسْمِ\s+اللَّهِ\s+الرَّحْمَٰنِ\s+الرَّحِيمِ\s*|^بِسْمِ.*?الرَّحِيمِ\s*/;
+      // This bulletproof regex strips EVERYTHING up to and including the word "الرَّحِيمِ", handling any dynamic vowel marks
+      const absoluteBismillahRegex = /^بِسْمِ.*?الرَّحِيمِ\s*/;
       
-      // If it finds it at the very start, it replaces it with an empty string safely
-      arabicText = arabicText.replace(flexibleBismillahRegex, '').trim();
+      // Secondary fallback: If the API sends it without vowel markings
+      const cleanBismillahRegex = /^بسم.*?الرحيم\s*/;
+
+      if (absoluteBismillahRegex.test(arabicText)) {
+        arabicText = arabicText.replace(absoluteBismillahRegex, '');
+      } else {
+        arabicText = arabicText.replace(cleanBismillahRegex, '');
+      }
+      
+      arabicText = arabicText.trim();
     }
 
     return ayahRow(
@@ -380,7 +388,6 @@ readerContent.innerHTML = `<h2 style="font-size:1.4rem;">${combined[0].englishNa
   }).join('');
 
 attachPlayButtons();
-
   } catch (err) {
     readerContent.className = 'error-msg';
     readerContent.textContent = 'Something went wrong loading this passage. Please try a different selection or reload.';
