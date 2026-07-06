@@ -48,6 +48,11 @@ html[data-theme="dark"] {
   --header-bg: rgba(18, 32, 27, 0.92);
   --select-bg: #182A23;
   --shadow-soft: 0 4px 24px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+html:not([data-theme="dark"]) {
+  color-scheme: light;
 }
 
 body, .card, .site-header, select, input {
